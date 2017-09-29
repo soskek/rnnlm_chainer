@@ -13,11 +13,28 @@ import numpy as np
 
 import chainer
 from chainer import cuda
+from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 from chainer import utils
+
+
+def convert_xt_batch_seq(xt_batch_seq, gpu):
+    batchsize = len(xt_batch_seq[0])
+    seq_len = len(xt_batch_seq)
+    xt_batch_seq = np.array(xt_batch_seq, 'i')
+    # (bproplen, batch, 2)
+    xt_batch_seq = convert.to_device(gpu, xt_batch_seq)
+    xp = cuda.get_array_module(xt_batch_seq)
+    x_seq_batch = xp.split(
+        xt_batch_seq[:, :, 0].T.reshape(batchsize * seq_len),
+        batchsize, axis=0)
+    t_seq_batch = xp.split(
+        xt_batch_seq[:, :, 1].T.reshape(batchsize * seq_len),
+        batchsize, axis=0)
+    return x_seq_batch, t_seq_batch
 
 # Dataset iterator to create a batch of sequences at different positions.
 # This iterator returns a pair of current words and the next words. Each
