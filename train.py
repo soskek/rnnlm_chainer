@@ -43,7 +43,7 @@ def main():
         count = 0
         model.loss = 0
         xt_batch_seq = []
-        one_pack = args.batchsize * args.bproplen
+        one_pack = args.batchsize * args.bproplen * 2
         with chainer.using_config('train', False), chainer.no_backprop_mode():
             for batch in copy.copy(iter):
                 xt_batch_seq.append(batch)
@@ -134,13 +134,16 @@ def main():
         if is_new_epoch:
             tmp = time.time()
             val_perp = evaluate(model, val_iter)
-            print('Epoch {:} val perp {:.3f}'.format(train_iter.epoch, val_perp))
+            time_str = time.strftime('%Y-%m-%d %H-%M-%S')
+            print('Epoch {:} val perp {:.3f}\t\t| TIME [{:.3f}s] ({})'.format(
+                train_iter.epoch, val_perp, time.time() - tmp, time_str))
             if val_perp < best_val_perp:
                   best_val_perp = val_perp
                   best_epoch = train_iter.epoch
                   serializers.save_npz('best.model', model)
             start += (time.time() - tmp)
             optimizer.lr *= 0.85
+            print('\t*lr = {:.8f}'.format(optimizer.lr))
             is_new_epoch = 0
 
     # Evaluate on test dataset
