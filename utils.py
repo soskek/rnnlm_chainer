@@ -8,6 +8,9 @@ https://github.com/tomsercu/lstm
 from __future__ import division
 from __future__ import print_function
 import argparse
+import io
+import json
+import os
 
 import numpy as np
 
@@ -35,6 +38,39 @@ def convert_xt_batch_seq(xt_batch_seq, gpu):
         xt_batch_seq[:, :, 1].T.reshape(batchsize * seq_len),
         batchsize, axis=0)
     return x_seq_batch, t_seq_batch
+
+def tokenize_text(file_path, vocab={}, update_vocab=False):
+    tokens = []
+    unk_id = vocab['<unk>']
+    with io.open(file_path, encoding='utf-8') as f:
+        for line in f:
+            words = line.split() + ['<eos>']
+            for word in words:
+                if update_vocab:
+                    if word not in vocab:
+                        vocab[word] = len(vocab)
+                tokens.append(vocab.get(word, unk_id))
+    return tokens, vocab
+                
+def get_wikitext_words_and_vocab(name='wikitext-2', base_dir='datasets'):
+    assert(name in ['wikitext-2', 'wikitext-103'])
+    base_dir2 = os.path.join(base_dir, name)
+    predata_path = os.path.join(base_dir2, 'preprocessed_data.json')
+    if os.path.exists(predata_path):
+        train, valid, test, vocab = json.load(open(predata_path))
+    else:
+        vocab = {'<eos>': 0, '<unk>': 1}
+        train, vocab = tokenize_text(
+            os.path.join(base_dir2, 'wiki.train.tokens'),
+            vocab, update_vocab=True)
+        valid, _ = tokenize_text(
+            os.path.join(base_dir2, 'wiki.valid.tokens'),
+            vocab, update_vocab=False)
+        test, _ = tokenize_text(
+            os.path.join(base_dir2, 'wiki.test.tokens'),
+            vocab, update_vocab=False)
+        json.dump([train, valid, test, vocab], open(predata_path, 'w'))
+    return train, valid, test, vocab
 
 # Dataset iterator to create a batch of sequences at different positions.
 # This iterator returns a pair of current words and the next words. Each

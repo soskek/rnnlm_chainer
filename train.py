@@ -34,6 +34,10 @@ def main():
     parser.set_defaults(test=False)
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of LSTM units in each layer')
+    parser.add_argument('--layer', type=int, default=2)
+    parser.add_argument('--dropout', type=float, default=0.5)
+    parser.add_argument('--dataset', default='ptb',
+                        choices=['ptb', 'wikitext-2', 'wikitext-103'])
     args = parser.parse_args()
 
     def evaluate(raw_model, iter):
@@ -63,15 +67,20 @@ def main():
                 sum_perp += model.pop_loss().data
         return np.exp(float(sum_perp) / count)
 
-    # Load the Penn Tree Bank long word sequence dataset
-    train, val, test = chainer.datasets.get_ptb_words()
-    n_vocab = max(train) + 1  # train is just an array of integers
-    print('#vocab =', n_vocab)
-
+    if args.dataset == 'ptb':
+        train, val, test = chainer.datasets.get_ptb_words()
+        n_vocab = max(train) + 1  # train is just an array of integers
+    else:
+        train, val, test, vocab = utils.get_wikitext_words_and_vocab(name=args.dataset)
+        n_vocab = len(vocab)
     if args.test:
         train = train[:100]
         val = val[:100]
         test = test[:100]
+    print('#train tokens =', len(train))
+    print('#valid tokens =', len(val))
+    print('#test tokens =', len(test))
+    print('#vocab =', n_vocab)
 
     # Create the dataset iterators
     train_iter = utils.ParallelSequentialIterator(train, args.batchsize)
@@ -79,7 +88,7 @@ def main():
     test_iter = utils.ParallelSequentialIterator(test, 1, repeat=False)
 
     # Prepare an RNNLM model
-    model = nets.RNNForLM(n_vocab, args.unit)
+    model = nets.RNNForLM(n_vocab, args.unit, args.layer, args.dropout)
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()

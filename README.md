@@ -9,5 +9,13 @@ You can train an RNNLM in 1 miniute per epoch, with backprop length of 35 and ba
 # How to Run
 
 ```
-python -u train.py -g 0
+python -u train.py -g 0 --dataset ptb
 ```
+
+# Datasets
+
+- PennTreeBank (`ptb`)
+- Wikitext-2 (`wikitext-2`)
+- Wikitext-103 (`wikitext-103`)
+
+For wikitext, run `prepare_wikitext.sh` for downloading the datasets.
